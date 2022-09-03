@@ -1,0 +1,7 @@
+{
+  "name": "watcher",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue"
+}
