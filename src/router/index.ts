@@ -3,32 +3,40 @@ import { RouteRecordRaw } from 'vue-router';
 import TabsPage from '../views/TabsPage.vue'
 
 const routes: Array<RouteRecordRaw> = [
-  {
-    path: '/',
-    redirect: '/tabs/Home'
-  },
-  {
-    path: '/tabs/',
-    component: TabsPage,
-    children: [
-      {
-        path: '',
+    {
+        path: '/',
         redirect: '/tabs/Home'
-      },
-      {
-        path: 'Home',
-        component: () => import('@/views/HomePage.vue')
-      },
-      {
-        path: 'TV',
-        component: () => import('@/views/TVPage.vue')
-      },
-      {
-        path: 'Movie',
-        component: () => import('@/views/MoviePage.vue')
-      }
-    ]
-  }
+    },
+    {
+        path: '/tabs/',
+        component: TabsPage,
+        children: [
+            {
+                path: '',
+                redirect: '/tabs/Home'
+            },
+            {
+                name: 'Home',
+                path: 'Home',
+                component: () => import('@/views/HomePage.vue')
+            },
+            {
+                name: 'TV Shows',
+                path: 'TV',
+                component: () => import('@/views/TVPage.vue')
+            },
+            {
+                name: 'Movies',
+                path: 'Movie',
+                component: () => import('@/views/MoviePage.vue')
+            },
+            {
+                name: 'Books',
+                path: 'Book',
+                component: () => import('@/views/BookPage.vue')
+            }
+        ]
+    }
 ]
 
 const router = createRouter({
