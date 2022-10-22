@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword, signOut, User } from "firebase/auth";
-import { getFirestore, doc, setDoc } from "firebase/firestore";
+import { getFirestore, doc, setDoc, updateDoc, deleteField } from "firebase/firestore";
 
 const firebaseConfig = {
 	apiKey: "AIzaSyAKOwgpOCgIQviQ7kzNR2XMCXEVjifvS34",
@@ -77,6 +77,53 @@ export async function updateDisplayName(name: string, user: User){
 	});
 }
 
-export async function addBook() {
-    
+export async function addBook(titleName: string, authorsArr: string[], pub: string, ISBNnum: string, pageAm: number, thumbnailImg: string) {
+    try {
+        if(auth.currentUser != null){
+            const uid = auth.currentUser.uid
+            const Ref = await doc(db, "data", `${uid}`, );
+            await updateDoc(Ref, {
+                [`books.${ISBNnum}`]: {
+                    authors: authorsArr,
+                    series: '',
+                    pageCount: pageAm,
+                    publisher: pub,
+                    read: false,
+                    thumbnail: thumbnailImg,
+                    title: titleName
+                }
+            })
+        }
+    } catch (error) {
+        console.log(error)
+    }
 }
+
+export async function markReadBook(ISBN: string) {
+    try {
+        if(auth.currentUser != null){
+            const uid = auth.currentUser.uid
+            const Ref = await doc(db, "data", `${uid}`, );
+            await updateDoc(Ref, {
+                [`books.${ISBN}.read`]: true
+            })
+        }
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+export async function deleteBook(ISBN: string) {
+    try {
+        if(auth.currentUser != null){
+            const uid = auth.currentUser.uid
+            const Ref = await doc(db, "data", `${uid}`, );
+            await updateDoc(Ref, {
+                [`books.${ISBN}`]: deleteField()
+            })
+        }
+    } catch (error) {
+        console.log(error)
+    }
+}
+

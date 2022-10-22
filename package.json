@@ -1,6 +1,6 @@
 {
-  "name": "watcher",
-  "version": "0.0.1",
+  "name": "Mediaer",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",

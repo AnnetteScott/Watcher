@@ -23,11 +23,7 @@ export interface UserData {
         }
     },
     books: {
-        [key: string]: {
-            name: string,
-            seriesNum: number,
-            read: boolean
-        }
+        [key: string]: BookInfo
     }
 }
 
@@ -108,9 +104,11 @@ export interface Item {
 
 export interface BookInfo {
     title: string,
+    series: string,
     authors: string[],
     publisher: string,
     ISBN: string,
     pageCount: number,
-    thumbnail: string
+    thumbnail: string,
+    read: boolean
 }
