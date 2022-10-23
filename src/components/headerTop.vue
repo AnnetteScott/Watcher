@@ -9,7 +9,7 @@
         </ion-toolbar>
     </ion-header>
 
-    <div v-if="showUserBox" class="user_box">
+    <div v-if="showUserBox || !userSignIn" class="user_box">
         <div id="snackbar">The passwords don't match</div>
         <!-- User is not signed in -->
         <template v-if="!userSignIn"> 
