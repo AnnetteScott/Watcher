@@ -124,8 +124,9 @@ export async function updateBook(ISBN: string, read: boolean, reading: boolean, 
                 await updateDoc(Ref, {
                     [`books.${ISBN}.read`]: read,
                     [`books.${ISBN}.reading`]: reading,
+                    [`books.${ISBN}.currentPage`]: pageCount,
                     [`books.${ISBN}.bookShelf`]: bookShelf,
-                    [`bookShelf.${bookShelf}`]: bookArr
+                    [`bookShelf.${bookShelf}`]: bookArr,
                 })
             }
         }
