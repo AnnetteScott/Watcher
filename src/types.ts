@@ -2,7 +2,7 @@ export const userData = {
     movies: {},
     tvShows: {},
     books: {},
-    bookShelf: []
+    bookShelf: ['']
 } as UserData
 
 

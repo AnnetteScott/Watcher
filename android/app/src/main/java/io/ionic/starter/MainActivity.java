@@ -1,4 +1,4 @@
-package io.ionic.starter;
+package com.annette.mediaer;
 
 import com.getcapacitor.BridgeActivity;
 

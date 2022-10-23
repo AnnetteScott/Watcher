@@ -89,6 +89,7 @@ export default defineComponent({
             this.unsubscribe = onAuthStateChanged(auth, (user) => {
                 if (user) {
                     this.userSignIn = true
+                    this.showUserBox = false
                     this.SignType = ''
                     this.User = user
                 } else {
@@ -119,6 +120,15 @@ export default defineComponent({
                 }   
             }
         }
+    },
+    watch: {
+        showUserBox(newVal){
+            if(newVal == false){
+                if(this.userSignIn == false){
+                    this.showUserBox = true
+                }
+            }
+        }
     }
 });
 </script>
@@ -129,12 +139,12 @@ ion-icon {
 }
 .user_box{
     position: absolute;
-    width: 350px;
-    height: 500px;
     z-index: 100;
     overflow: scroll;
     top: 68px;
-    left: calc(50% - 175px);
+    left: 2px;
+    right: 2px;
+    bottom: 10px;
 }
 form {
     width: 100%;

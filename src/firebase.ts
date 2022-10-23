@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
+//import { getAnalytics } from "firebase/analytics";
 import { getAuth, createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword, signOut, User } from "firebase/auth";
 import { getFirestore, doc, setDoc, updateDoc, deleteField, arrayUnion  } from "firebase/firestore";
 
@@ -15,7 +15,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+//const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
@@ -34,16 +34,18 @@ export async function createNewUser(email: string, password: string, name: strin
 		const userCredential = await createUserWithEmailAndPassword(auth, email, password)
 		const user = userCredential.user;
 		await updateDisplayName(name, user)
-		const uid = auth.currentUser?.uid
-		if(uid != undefined){
-			try {
-				await setDoc(doc(db, `data/${uid}`), {
-					...userData
-				});
-			} catch (error) {
-				console.log(error)    
-			}
-		}
+        if(auth.currentUser != null){
+            const uid = auth.currentUser.uid
+            if(uid != undefined){
+                try {
+                    await setDoc(doc(db, `data/${uid}`), {
+                        ...userData
+                    });
+                } catch (error) {
+                    console.log(error)    
+                }
+            }
+        }
 	} catch (error) {
 		console.log(error)
 	}
@@ -52,9 +54,10 @@ export async function signInUser(email: string, password: string){
 	signInWithEmailAndPassword(auth, email, password)
 	.then((userCredential) => {
 		const user = userCredential.user;
+        console.log(user)
 	})
 	.catch((error) => {
-		const errorCode = error.code;
+		//const errorCode = error.code;
 		const errorMessage = error.message;
 		console.log(errorMessage)
 	});

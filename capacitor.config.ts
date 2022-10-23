@@ -1,8 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'io.ionic.starter',
-  appName: 'watcher',
+  appId: 'com.annette.mediaer',
+  appName: 'Mediaer',
   webDir: 'dist',
   bundledWebRuntime: false
 };

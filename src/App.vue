@@ -22,9 +22,14 @@ export default defineComponent({
         }
     },
     watch: {
-        $route(to, from){
+        $route(to){
             this.titleName = to.name
         }
     }
 });
 </script>
+<style>
+input{
+    color: black !important;
+}
+</style>
