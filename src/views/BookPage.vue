@@ -13,6 +13,8 @@
 									@click="showBookInfo(`${ISBN}`)"
 								>
 								<div class="bookmark" :style="{color: `${dataBase.books[ISBN].read ? 'green' : dataBase.books[ISBN].reading ? 'orange' : 'red'}`}" :title="dataBase.books[ISBN].read ? 'Read' : dataBase.books[ISBN].reading ? 'Reading' : 'Not Read'"></div>
+                                
+                                <div class="page_count_display" :style="{background: `${dataBase.books[ISBN].read ? 'green' : dataBase.books[ISBN].reading ? 'orange' : 'red'}`}" >{{dataBase.books[ISBN].currentPage}}</div>
 							</div>
 						</template>
 					</div>
@@ -218,22 +220,21 @@ export default  defineComponent({
 			}
 		},
 		async saveBookToDB(){
-            if(this.bookChanged){
-                if(this.read){
-                    this.reading = false
-                }
-    
-                let bookArr = this.dataBase.bookShelf[this.bookShelfSelect]
-                const index = bookArr.indexOf(this.isbnNum);
-                if (index > -1) {
-                    bookArr.splice(index, 1);
-                }
-                bookArr.splice(parseInt(this.bookShelfPosSelect), 0, this.isbnNum)
-                bookArr.join()
-                await updateBook(this.isbnNum, this.read, this.reading, this.bookShelfSelect, bookArr, this.dataBase.books[this.isbnNum].bookShelf, this.currentPage)
-                this.showBookPopUp = false
-                this.bookChanged = false
+            if(this.read){
+                this.reading = false
             }
+
+            let bookArr = this.dataBase.bookShelf[this.bookShelfSelect]
+            const index = bookArr.indexOf(this.isbnNum);
+            if (index > -1) {
+                bookArr.splice(index, 1);
+            }
+            bookArr.splice(parseInt(this.bookShelfPosSelect), 0, this.isbnNum)
+            bookArr.join()
+            console.log(this.currentPage)
+            await updateBook(this.isbnNum, this.read, this.reading, this.bookShelfSelect, bookArr, this.dataBase.books[this.isbnNum].bookShelf, this.currentPage)
+            this.showBookPopUp = false
+            this.bookChanged = false
 		},
 		async createBookShelf(){
 			await addBookShelf(this.bookShelf)
@@ -276,22 +277,7 @@ export default  defineComponent({
 			else {
 				this.unsub()
 			}
-		},
-        isbnNum(){
-            this.bookChanged = true
-        },
-        read(){
-            this.bookChanged = true
-        },
-        reading(){
-            this.bookChanged = true
-        },
-        bookShelfSelect(){
-            this.bookChanged = true
-        },
-        bookShelfPosSelect(){
-            this.bookChanged = true
-        },
+		}
 	}
 });
 </script>
@@ -439,6 +425,16 @@ p{
 	width: 100%;
 	gap: 10px;
 	text-align: center;
+}
+
+.page_count_display {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    z-index: 10;
+    padding: 3px;
+    font-size: 0.7rem;
+    max-width: 32px;
 }
 
 .book_pop_up_container{
