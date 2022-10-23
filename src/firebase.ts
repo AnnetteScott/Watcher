@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 //import { getAnalytics } from "firebase/analytics";
 import { getAuth, createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword, signOut, User } from "firebase/auth";
-import { getFirestore, doc, setDoc, updateDoc, deleteField, arrayUnion  } from "firebase/firestore";
+import { getFirestore, doc, setDoc, updateDoc, deleteField, arrayUnion, arrayRemove } from "firebase/firestore";
 
 const firebaseConfig = {
 	apiKey: "AIzaSyAKOwgpOCgIQviQ7kzNR2XMCXEVjifvS34",
@@ -80,7 +80,7 @@ export async function updateDisplayName(name: string, user: User){
 	});
 }
 
-export async function addBook(titleName: string, authorsArr: string[], pub: string, ISBNnum: string, pageAm: number, thumbnailImg: string) {
+export async function addBook(titleName: string, authorsArr: string[], pub: string, ISBNnum: string, thumbnailImg: string) {
     try {
         if(auth.currentUser != null){
             const uid = auth.currentUser.uid
@@ -88,14 +88,60 @@ export async function addBook(titleName: string, authorsArr: string[], pub: stri
             await updateDoc(Ref, {
                 [`books.${ISBNnum}`]: {
                     authors: authorsArr,
-                    bookShelf: '',
-                    pageCount: pageAm,
+                    bookShelf: 'Unsorted',
+                    currentPage: '0',
                     publisher: pub,
                     read: false,
                     reading: false,
                     thumbnail: thumbnailImg,
                     title: titleName
-                }
+                },
+                ['bookShelf.Unsorted']: arrayUnion(ISBNnum)
+            })
+        }
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+export async function updateBook(ISBN: string, read: boolean, reading: boolean, bookShelf: string, bookArr: string[], oldShelf: string, pageCount: string) {
+    try {
+        if(auth.currentUser != null){
+            if(bookShelf != oldShelf){
+                const uid = auth.currentUser.uid
+                const Ref = await doc(db, "data", `${uid}`, );
+                await updateDoc(Ref, {
+                    [`books.${ISBN}.read`]: read,
+                    [`books.${ISBN}.reading`]: reading,
+                    [`books.${ISBN}.currentPage`]: pageCount,
+                    [`books.${ISBN}.bookShelf`]: bookShelf,
+                    [`bookShelf.${bookShelf}`]: bookArr,
+                    [`bookShelf.${oldShelf}`]: arrayRemove(ISBN),
+                })
+            }else{
+                const uid = auth.currentUser.uid
+                const Ref = await doc(db, "data", `${uid}`, );
+                await updateDoc(Ref, {
+                    [`books.${ISBN}.read`]: read,
+                    [`books.${ISBN}.reading`]: reading,
+                    [`books.${ISBN}.bookShelf`]: bookShelf,
+                    [`bookShelf.${bookShelf}`]: bookArr
+                })
+            }
+        }
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+export async function deleteBook(ISBN: string, shelf: string) {
+    try {
+        if(auth.currentUser != null){
+            const uid = auth.currentUser.uid
+            const Ref = await doc(db, "data", `${uid}`, );
+            await updateDoc(Ref, {
+                [`books.${ISBN}`]: deleteField(),
+                [`bookShelf.${shelf}`]: arrayRemove(ISBN)
             })
         }
     } catch (error) {
@@ -109,7 +155,8 @@ export async function addBookShelf(bookShelf: string) {
             const uid = auth.currentUser.uid
             const Ref = await doc(db, "data", `${uid}`, );
             await updateDoc(Ref, {
-                bookShelf: arrayUnion(bookShelf)
+                [`bookShelf.${bookShelf}`]: [],
+                ['shelfNames']: arrayUnion(bookShelf)
             })
         }
     } catch (error) {
@@ -117,29 +164,13 @@ export async function addBookShelf(bookShelf: string) {
     }
 }
 
-export async function updateBook(ISBN: string, read: boolean, reading: boolean, bookShelf: string) {
+export async function moveShelf(bookShelf: string[]) {
     try {
         if(auth.currentUser != null){
             const uid = auth.currentUser.uid
             const Ref = await doc(db, "data", `${uid}`, );
             await updateDoc(Ref, {
-                [`books.${ISBN}.read`]: read,
-                [`books.${ISBN}.reading`]: reading,
-                [`books.${ISBN}.bookShelf`]: bookShelf,
-            })
-        }
-    } catch (error) {
-        console.log(error)
-    }
-}
-
-export async function deleteBook(ISBN: string) {
-    try {
-        if(auth.currentUser != null){
-            const uid = auth.currentUser.uid
-            const Ref = await doc(db, "data", `${uid}`, );
-            await updateDoc(Ref, {
-                [`books.${ISBN}`]: deleteField()
+                ['shelfNames']: bookShelf
             })
         }
     } catch (error) {

@@ -1,8 +1,9 @@
 export const userData = {
+    bookShelf: {'Unsorted': []},
+    books: {},
     movies: {},
     tvShows: {},
-    books: {},
-    bookShelf: ['']
+    shelfNames: ['Unsorted']
 } as UserData
 
 
@@ -26,7 +27,10 @@ export interface UserData {
     books: {
         [key: string]: BookInfo
     },
-    bookShelf: string[]
+    bookShelf: {
+        [key: string]: string[]
+    },
+    shelfNames: string[]
 }
 
 
@@ -113,5 +117,6 @@ export interface BookInfo {
     pageCount: number,
     thumbnail: string,
     read: boolean,
-    reading: boolean
+    reading: boolean,
+    currentPage: string
 }

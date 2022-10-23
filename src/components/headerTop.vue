@@ -3,7 +3,8 @@
         <ion-toolbar>
             <ion-title>{{ title }}</ion-title>
             <ion-buttons slot="end" @click="showUserBox = !showUserBox">
-                <ion-icon :icon="person"/>
+                <ion-icon :icon="person" style="color: green;" v-if="userSignIn" />
+                <ion-icon :icon="person" style="color: red;" v-if="!userSignIn" />
             </ion-buttons>
         </ion-toolbar>
     </ion-header>
@@ -69,10 +70,10 @@ export default defineComponent({
             userSignIn: false,
             passwordSetting: 'password',
             unsubscribe: {} as Unsubscribe,
-            userName: 'Netty',
-            userEmail: 'netty@netty.com',
-            userPassword: 'HelloThere',
-            userPasswordConfirm: 'HelloThere',
+            userName: '',
+            userEmail: '',
+            userPassword: '',
+            userPasswordConfirm: '',
             User: {displayName: ''} as User,
             signOutUser
         }

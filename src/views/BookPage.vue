@@ -3,17 +3,16 @@
 		<ion-content :fullscreen="true">
 			<div v-if="!showSearch" class="page_container">
 				<p class="page_title">BookShelves:</p>
-				<div class="shelf" v-for="shelf in dataBase.bookShelf" :key="shelf">
-					<p class="shelf_title" v-if="shelf != ''">{{shelf}}</p>
-					<p class="shelf_title" v-else>Unsorted</p>
+				<div class="shelf" v-for="shelfName in dataBase.shelfNames" :key="shelfName">
+					<p class="shelf_title" @click="showMoveShelf = !showMoveShelf, bookShelfSelect = shelfName">{{shelfName}}</p>
 					<div class="book_list">
-						<template v-for="(INFO, ISBN) of dataBase.books" :key="ISBN">
-							<div class="book" v-if="dataBase.books[ISBN].bookShelf == shelf">
+						<template v-for="ISBN of dataBase.bookShelf[shelfName]" :key="ISBN">
+							<div class="book">
 								<img 
-									:src="INFO.thumbnail"
+									:src="dataBase.books[ISBN].thumbnail"
 									@click="showBookInfo(`${ISBN}`)"
 								>
-								<div class="bookmark" :style="{color: `${INFO.read ? 'green' : INFO.reading ? 'orange' : 'red'}`}" :title="INFO.read ? 'Read' : INFO.reading ? 'Reading' : 'Not Read'"></div>
+								<div class="bookmark" :style="{color: `${dataBase.books[ISBN].read ? 'green' : dataBase.books[ISBN].reading ? 'orange' : 'red'}`}" :title="dataBase.books[ISBN].read ? 'Read' : dataBase.books[ISBN].reading ? 'Reading' : 'Not Read'"></div>
 							</div>
 						</template>
 					</div>
@@ -49,17 +48,33 @@
 							<label>Reading:</label>
 							<input type="checkbox" v-model="reading">
 						</div>
+                        
+                        <div class="input_item">
+							<label>Current Page:</label>
+							<input v-model="currentPage" style="width: 10ch; aspect-ratio: 0;">
+						</div>
 						
 						<div class="input_item">
 							<label>Bookshelf:</label>
 							<select  v-model="bookShelfSelect">
-								<template v-if="dataBase.bookShelf.length > 0">
-									<option v-for="shelf in dataBase.bookShelf" :value="shelf" :key="shelf">{{shelf}}</option>
-								</template>
+								<option v-for="shelf, shelfName in dataBase.bookShelf" :value="shelfName" :key="shelfName">{{shelfName}}</option>
 							</select>
 						</div>
 						<div style="margin-top: 15px;">
 							<ion-button expand="block" style="height: 20px;" @click="showAddShelf = true">Add BookShelf</ion-button>
+						</div>
+                        
+                        <div style="margin-top: 15px;" class="input_item">
+							<label>Bookshelf:</label>
+							<select  v-model="bookShelfPosSelect">
+                                <template v-if="Object.keys(dataBase.bookShelf[bookShelfSelect]).length != 0">
+                                    <option v-for="pos in Object.keys(dataBase.bookShelf[bookShelfSelect])" :value="pos" :key="pos">{{parseInt(pos) + 1}}</option>
+                                    <option :value="Object.keys(dataBase.bookShelf[bookShelfSelect]).length">{{Object.keys(dataBase.bookShelf[bookShelfSelect]).length + 1}}</option>
+                                </template>
+                               <template v-else>
+                                    <option value="0">1</option>
+                               </template>
+							</select>
 						</div>
 						<ion-button expand="block" @click="saveBookToDB()" style="position: absolute; bottom: 50px; width: 90%;">Save</ion-button>
 						<ion-button expand="block" color="danger" @click="deleteBookFromDB()" style="position: absolute; bottom: 4px;">Delete</ion-button>
@@ -67,7 +82,7 @@
 				</div>
 			</div>
 			<div class="book_pop_up_container" v-if="showAddShelf">
-				<div class="book_pop_up" >
+				<div class="book_pop_up">
 					<ion-icon :icon="close" style="position: absolute; right: -4px; top: -2px; color: red; width: 32px; height: 32px;" @click="showAddShelf = false"></ion-icon>
 					<div class="book_pop_inner">
 						<div class="input_item">
@@ -78,13 +93,27 @@
 					</div>
 				</div>
 			</div>
+            <div class="book_pop_up_container" v-if="showMoveShelf">
+                <div class="book_pop_up">
+                    <ion-icon :icon="close" style="position: absolute; right: -4px; top: -2px; color: red; width: 32px; height: 32px;" @click="showMoveShelf = false"></ion-icon>
+                    <div class="book_pop_inner">
+                        <div style="margin-top: 15px;" class="input_item">
+							<label>Bookshelf Position:</label>
+							<select  v-model="shelfPos">
+                                <option v-for="pos in Object.keys(dataBase.shelfNames)" :value="pos" :key="pos">{{parseInt(pos) + 1}}</option>
+							</select>
+						</div>
+                        <ion-button expand="block" @click="changeShelf()" style="position: absolute; bottom: 50px; width: 90%;">Save</ion-button>
+                    </div>
+                </div>
+            </div>
 		</ion-content>
 	</ion-page>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { addBook, returnAuth, returnDataBase, deleteBook, addBookShelf, updateBook } from '@/firebase'
+import { addBook, returnAuth, returnDataBase, deleteBook, addBookShelf, updateBook, moveShelf } from '@/firebase'
 import { Unsubscribe } from "firebase/auth";
 import { doc, onSnapshot, DocumentData } from "firebase/firestore";
 import { IonPage, IonContent, IonButton, IonIcon, IonSearchbar } from '@ionic/vue';
@@ -104,7 +133,7 @@ export default  defineComponent({
 		return {
 			close,
 			dataBase: {} as DocumentData as UserData,
-			isbnNum: '9781250027436',
+			isbnNum: '',
 			rawData: {} as BookVolume,
 			results: {} as BookInfo,
 			unsub: {} as Unsubscribe,
@@ -115,8 +144,13 @@ export default  defineComponent({
 			read: false,
 			reading: false,
 			bookShelf: '',
-			bookShelfSelect: 'None',
-			bookTitle: ''
+			bookShelfSelect: '',
+			bookShelfPosSelect: '0',
+			bookTitle: '',
+            bookChanged: false,
+            showMoveShelf: false,
+            shelfPos: '',
+            currentPage: '',
 		}
 	},
 	mounted(){
@@ -152,53 +186,86 @@ export default  defineComponent({
 			});
 		},
 		processSearch(){
-			this.results.title = this.rawData.items[0].volumeInfo.title
-			this.results.authors = this.rawData.items[0].volumeInfo.authors
-			for(let i = 0; i < this.rawData.items[0].volumeInfo.industryIdentifiers.length; i++){
-				if(this.rawData.items[0].volumeInfo.industryIdentifiers[i].type == 'ISBN_13'){
-					this.results.ISBN = this.rawData.items[0].volumeInfo.industryIdentifiers[i].identifier
-				}
-			}
-			this.results.pageCount = this.rawData.items[0].volumeInfo.pageCount
-			this.results.publisher = this.rawData.items[0].volumeInfo.publisher
-			this.results.thumbnail = this.rawData.items[0].volumeInfo.imageLinks.thumbnail
-			this.showResults = true
+            if(this.rawData.totalItems != 0){
+                this.results.title = this.rawData.items[0].volumeInfo.title
+                this.results.authors = this.rawData.items[0].volumeInfo.authors
+                for(let i = 0; i < this.rawData.items[0].volumeInfo.industryIdentifiers.length; i++){
+                    if(this.rawData.items[0].volumeInfo.industryIdentifiers[i].type == 'ISBN_13'){
+                        this.results.ISBN = this.rawData.items[0].volumeInfo.industryIdentifiers[i].identifier
+                    }
+                }
+                this.results.pageCount = this.rawData.items[0].volumeInfo.pageCount
+                this.results.publisher = this.rawData.items[0].volumeInfo.publisher
+                this.results.thumbnail = this.rawData.items[0].volumeInfo.imageLinks.thumbnail
+                this.showResults = true
+            }
 		},
 		async addBookToDB(){
-			await addBook(this.results.title, this.results.authors, this.results.publisher, this.results.ISBN, this.results.pageCount, this.results.thumbnail)
+			await addBook(this.results.title, this.results.authors, this.results.publisher, this.results.ISBN, this.results.thumbnail)
 			this.showSearch = !this.showSearch
 			this.isbnNum = ''
 			this.showResults = false
 			this.results = {} as BookInfo
+            this.currentPage = ''
 		},
 		async deleteBookFromDB(){
 			if(Object.keys(this.dataBase).length != 0){
 				let title = this.dataBase.books[this.isbnNum].title
 				if(confirm(`Are you sure you want to delete ${title}`) == true) {
-					deleteBook(this.isbnNum)
+					deleteBook(this.isbnNum, this.dataBase.books[this.isbnNum].bookShelf)
 					this.showBookPopUp = false
 				}
 			}
 		},
 		async saveBookToDB(){
-			if(this.read){
-				this.reading = false
-			}
-			await updateBook(this.isbnNum, this.read, this.reading, this.bookShelfSelect)
-			this.showBookPopUp = false
+            if(this.bookChanged){
+                if(this.read){
+                    this.reading = false
+                }
+    
+                let bookArr = this.dataBase.bookShelf[this.bookShelfSelect]
+                const index = bookArr.indexOf(this.isbnNum);
+                if (index > -1) {
+                    bookArr.splice(index, 1);
+                }
+                bookArr.splice(parseInt(this.bookShelfPosSelect), 0, this.isbnNum)
+                bookArr.join()
+                await updateBook(this.isbnNum, this.read, this.reading, this.bookShelfSelect, bookArr, this.dataBase.books[this.isbnNum].bookShelf, this.currentPage)
+                this.showBookPopUp = false
+                this.bookChanged = false
+            }
 		},
 		async createBookShelf(){
 			await addBookShelf(this.bookShelf)
 			this.showAddShelf = false
 			this.bookShelf = ''
 		},
+        async changeShelf(){
+            if(this.shelfPos == ''){
+                this.shelfPos = '0'
+            }
+            let bookArr = this.dataBase.shelfNames
+            const index = bookArr.indexOf(this.bookShelfSelect);
+            if (index > -1) {
+                bookArr.splice(index, 1);
+            }
+            bookArr.splice(parseInt(this.shelfPos), 0, this.bookShelfSelect)
+            bookArr.join()
+            await moveShelf(bookArr)
+            this.showMoveShelf = false
+            this.shelfPos = ''
+            this.bookShelfSelect = ''
+        },
 		showBookInfo(ISBN: string){
+            this.bookChanged = false
 			this.isbnNum = ISBN
 			this.showBookPopUp = true
 			this.bookTitle = this.dataBase.books[ISBN].title
 			this.read = this.dataBase.books[ISBN].read
 			this.reading = this.dataBase.books[ISBN].reading
 			this.bookShelfSelect = this.dataBase.books[ISBN].bookShelf
+            this.bookShelfPosSelect = this.dataBase.bookShelf[this.bookShelfSelect].indexOf(ISBN).toString()
+            this.currentPage = this.dataBase.books[ISBN].currentPage
 		}
 	},
 	watch: {
@@ -209,7 +276,22 @@ export default  defineComponent({
 			else {
 				this.unsub()
 			}
-		}
+		},
+        isbnNum(){
+            this.bookChanged = true
+        },
+        read(){
+            this.bookChanged = true
+        },
+        reading(){
+            this.bookChanged = true
+        },
+        bookShelfSelect(){
+            this.bookChanged = true
+        },
+        bookShelfPosSelect(){
+            this.bookChanged = true
+        },
 	}
 });
 </script>
@@ -264,10 +346,10 @@ p{
 	position: relative;
 	display: flex;
 	justify-content: flex-start;
-	gap: 10px;
+	gap: 18px;
 	min-height: 196px;
 	margin: 5px 0px;
-	padding: 10px 15px 32px;
+	padding: 10px 20px 32px 15px;
 	overflow-x: scroll;
 	overflow-y: hidden;
 }
@@ -294,11 +376,11 @@ p{
 	content: '';
 	position: absolute;
 	z-index: 1;
-	right: -5px;
-	bottom: -4px;
+	right: -7px;
+	bottom: -7px;
 	display: block;
 	width: 1px;
-	height: 6px;
+	height: 10px;
 	background-color: #000;
 	transform: rotate(-45deg);
 	transform-origin: 50% 100%;
@@ -317,6 +399,8 @@ p{
 		3px 3px 0px currentColor,
 		4px 4px 0px currentColor,
 		5px 5px 0px currentColor,
+		6px 6px 0px currentColor,
+		7px 7px 0px currentColor,
 		5px 5px 12px -2px #0008,
 		3px 3px 18px -4px #0002;
 }
