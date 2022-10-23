@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword, signOut, User } from "firebase/auth";
-import { getFirestore, doc, setDoc, updateDoc, deleteField } from "firebase/firestore";
+import { getFirestore, doc, setDoc, updateDoc, deleteField, arrayUnion  } from "firebase/firestore";
 
 const firebaseConfig = {
 	apiKey: "AIzaSyAKOwgpOCgIQviQ7kzNR2XMCXEVjifvS34",
@@ -85,10 +85,11 @@ export async function addBook(titleName: string, authorsArr: string[], pub: stri
             await updateDoc(Ref, {
                 [`books.${ISBNnum}`]: {
                     authors: authorsArr,
-                    series: '',
+                    bookShelf: '',
                     pageCount: pageAm,
                     publisher: pub,
                     read: false,
+                    reading: false,
                     thumbnail: thumbnailImg,
                     title: titleName
                 }
@@ -99,13 +100,29 @@ export async function addBook(titleName: string, authorsArr: string[], pub: stri
     }
 }
 
-export async function markReadBook(ISBN: string) {
+export async function addBookShelf(bookShelf: string) {
     try {
         if(auth.currentUser != null){
             const uid = auth.currentUser.uid
             const Ref = await doc(db, "data", `${uid}`, );
             await updateDoc(Ref, {
-                [`books.${ISBN}.read`]: true
+                bookShelf: arrayUnion(bookShelf)
+            })
+        }
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+export async function updateBook(ISBN: string, read: boolean, reading: boolean, bookShelf: string) {
+    try {
+        if(auth.currentUser != null){
+            const uid = auth.currentUser.uid
+            const Ref = await doc(db, "data", `${uid}`, );
+            await updateDoc(Ref, {
+                [`books.${ISBN}.read`]: read,
+                [`books.${ISBN}.reading`]: reading,
+                [`books.${ISBN}.bookShelf`]: bookShelf,
             })
         }
     } catch (error) {
@@ -126,4 +143,3 @@ export async function deleteBook(ISBN: string) {
         console.log(error)
     }
 }
-

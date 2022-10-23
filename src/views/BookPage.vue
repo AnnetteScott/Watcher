@@ -1,20 +1,35 @@
 <template>
     <ion-page>
         <ion-content :fullscreen="true">
-            <div v-if="showSearch" style="height: calc(100% - 50px);overflow: scroll;">
+            <div v-if="!showSearch" style="height: calc(100% - 44px);overflow: scroll;margin-top: 4px;">
+                Library:
                 <div class="book_item_list">
-                    <img 
-                        :src="INFO.thumbnail" 
-                        v-for="(INFO, ISBN) of dataBase.books" :key="ISBN" 
-                        :style="{border: `5px solid ${INFO.read ? 'green' : 'red'}`}"
-                        @click="showBookInfo(`${ISBN}`)"
-                    >
+                    <template v-for="(INFO, ISBN) of dataBase.books" :key="ISBN">
+                        <img 
+                            v-if="dataBase.books[ISBN].bookShelf == ''"
+                            :src="INFO.thumbnail"
+                            :style="{border: `7px solid ${INFO.read ? 'green' : INFO.reading ? 'orange' : 'red'}`}"
+                            @click="showBookInfo(`${ISBN}`)"
+                        >
+                    </template>
                 </div>
-                <ion-button expand="block" style="height: 22px;" @click="''">Add New Series</ion-button>
-                <p>Series:</p>
+                <p class="bookShelf_top_label">BookShelves:</p>
+                <div class="bookShelf_item" v-for="shelf in dataBase.bookShelf" :key="shelf">
+                    <p class="shelf_item">{{shelf}}</p>
+                    <div class="book_item_list">
+                        <template v-for="(INFO, ISBN) of dataBase.books" :key="ISBN">
+                            <img 
+                                v-if="dataBase.books[ISBN].bookShelf == shelf"
+                                :src="INFO.thumbnail"
+                                :style="{border: `7px solid ${INFO.read ? 'green' : INFO.reading ? 'orange' : 'red'}`}"
+                                @click="showBookInfo(`${ISBN}`)"
+                            >
+                        </template>
+                    </div>
+                </div>
                 <ion-button expand="block" style="position: absolute; bottom: 55px; width: calc(100% - 4px);" @click="showSearch = !showSearch">Add Book</ion-button>
             </div>
-            <div v-else>
+            <div v-if="showSearch">
                 <ion-searchbar placeholder="Enter ISBN Number" v-model="isbnNum"></ion-searchbar>
                 <ion-button expand="block" @click="searchBookISBN()">Search</ion-button>
                 <div class="book_search_item" v-if="showResults">
@@ -30,17 +45,60 @@
                 </div>
                 <ion-button expand="block" style="position: absolute; bottom: 55px; width: calc(100% - 4px);" @click="showSearch = !showSearch">Back</ion-button>
             </div>
+            <div class="book_pop_up_container" v-if="showBookPopUp">
+                <div class="book_pop_up" >
+                    <ion-icon :icon="close" style="position: absolute; right: -4px; top: -2px; color: red; width: 32px; height: 32px;" @click="showBookPopUp = false"></ion-icon>
+                    <div class="book_pop_inner">
+                        <p>{{bookTitle}}</p>
+                        <div class="input_item">
+                            <label>Read:</label>
+                            <input type="checkbox" v-model="read">
+                        </div>
+                        <div class="input_item">
+                            <label>Reading:</label>
+                            <input type="checkbox" v-model="reading">
+                        </div>
+                        
+                        <div class="input_item">
+                            <label>Bookshelf:</label>
+                            <select  v-model="bookShelfSelect">
+                                <option value=""></option>
+                                <template v-if="dataBase.bookShelf.length > 0">
+                                    <option v-for="shelf in dataBase.bookShelf" :value="shelf" :key="shelf">{{shelf}}</option>
+                                </template>
+                            </select>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <ion-button expand="block" style="height: 20px;" @click="showAddShelf = true">Add BookShelf</ion-button>
+                        </div>
+                        <ion-button expand="block" @click="saveBookToDB()" style="position: absolute; bottom: 50px; width: 90%;">Save</ion-button>
+                        <ion-button expand="block" color="danger" @click="deleteBookFromDB()" style="position: absolute; bottom: 4px;">Delete</ion-button>
+                    </div>
+                </div>
+            </div>
+            <div class="book_pop_up_container" v-if="showAddShelf">
+                <div class="book_pop_up" >
+                    <ion-icon :icon="close" style="position: absolute; right: -4px; top: -2px; color: red; width: 32px; height: 32px;" @click="showAddShelf = false"></ion-icon>
+                    <div class="book_pop_inner">
+                        <div class="input_item">
+                            <label>BookShelf Name:</label>
+                            <input v-model="bookShelf" style="width: 140px; aspect-ratio: 0;">
+                        </div>
+                        <ion-button expand="block" @click="createBookShelf()" style="position: absolute; bottom: 50px; width: 90%;">Create</ion-button>
+                    </div>
+                </div>
+            </div>
         </ion-content>
     </ion-page>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { addBook, returnAuth, returnDataBase, deleteBook, markReadBook } from '@/firebase'
+import { addBook, returnAuth, returnDataBase, deleteBook, addBookShelf, updateBook } from '@/firebase'
 import { Unsubscribe } from "firebase/auth";
 import { doc, onSnapshot, DocumentData } from "firebase/firestore";
 import { IonPage, IonContent, IonButton, IonIcon, IonInput, IonSearchbar } from '@ionic/vue';
-import { search } from 'ionicons/icons';
+import { close } from 'ionicons/icons';
 import { BookVolume, BookInfo, UserData } from '@/types'
 import $ from 'jquery'
 export default  defineComponent({
@@ -55,14 +113,21 @@ export default  defineComponent({
     },
     data() {
         return {
-            search,
+            close,
             dataBase: {} as DocumentData as UserData,
             isbnNum: '9781250027436',
             rawData: {} as BookVolume,
             results: {} as BookInfo,
             unsub: {} as Unsubscribe,
             showResults: false,
-            showSearch: true,
+            showSearch: false,
+            showAddShelf: false,
+            showBookPopUp: false,
+            read: false,
+            reading: false,
+            bookShelf: '',
+            bookShelfSelect: 'None',
+            bookTitle: ''
         }
     },
     mounted(){
@@ -113,17 +178,37 @@ export default  defineComponent({
             await addBook(this.results.title, this.results.authors, this.results.publisher, this.results.ISBN, this.results.pageCount, this.results.thumbnail)
             this.showSearch = !this.showSearch
             this.isbnNum = ''
+            this.showResults = false
+            this.results = {} as BookInfo
         },
-        async markBookAsRead(ISBN: string){
-            await markReadBook(ISBN)
-        },
-        async deleteBookFromDB(ISBN: string, title: string){
-            if(confirm(`Are you sure you want to delete ${title}`) == true) {
-                deleteBook(ISBN)
+        async deleteBookFromDB(){
+            if(Object.keys(this.dataBase).length != 0){
+                let title = this.dataBase.books[this.isbnNum].title
+                if(confirm(`Are you sure you want to delete ${title}`) == true) {
+                    deleteBook(this.isbnNum)
+                    this.showBookPopUp = false
+                }
             }
         },
+        async saveBookToDB(){
+            if(this.read){
+                this.reading = false
+            }
+            await updateBook(this.isbnNum, this.read, this.reading, this.bookShelfSelect)
+            this.showBookPopUp = false
+        },
+        async createBookShelf(){
+            await addBookShelf(this.bookShelf)
+            this.showAddShelf = false
+            this.bookShelf = ''
+        },
         showBookInfo(ISBN: string){
-
+            this.isbnNum = ISBN
+            this.showBookPopUp = true
+            this.bookTitle = this.dataBase.books[ISBN].title
+            this.read = this.dataBase.books[ISBN].read
+            this.reading = this.dataBase.books[ISBN].reading
+            this.bookShelfSelect = this.dataBase.books[ISBN].bookShelf
         }
     },
     watch: {
@@ -139,9 +224,13 @@ export default  defineComponent({
 });
 </script>
 
-<style>
+<style scoped>
+p{
+    margin: 0;
+}
 .book_item_list{
-    margin-top: 10px;
+    margin-top: 5px;
+    margin-bottom: 10px;
     gap: 10px;
     display: flex;
     justify-content: flex-start;
@@ -165,5 +254,58 @@ export default  defineComponent({
     width: 100%;
     gap: 10px;
     text-align: center;
+}
+
+.book_pop_up_container{
+    backdrop-filter: blur(8px);
+    position: absolute;
+    top: 0px;
+    bottom: 55px;
+    left: 0px;
+    right: 0px;
+}
+.book_pop_up{
+    position: absolute;
+    top: 7px;
+    bottom: 7px;
+    left: 10%;
+    right: 10%;
+    z-index: 50;
+    border: 1px solid black;
+    background-color: white;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.book_pop_inner{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 30px 0px;
+}
+
+input{
+    width: 30px;
+    aspect-ratio: 1;
+}
+.input_item{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 10px;
+    width: 100%;
+}
+select{
+    width: 20ch;
+}
+.bookShelf_top_label{
+    border-bottom: 2px solid black; 
+    margin: 5px 0px 20px;
+    text-align: center;
+    font-size: xx-large;
+}
+.shelf_item{
+    border-bottom: 1px solid grey; 
 }
 </style>

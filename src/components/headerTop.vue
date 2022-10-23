@@ -123,7 +123,7 @@ export default defineComponent({
 });
 </script>
 
-<style>
+<style scoped>
 ion-icon {
   font-size: 35px;
 }

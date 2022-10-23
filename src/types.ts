@@ -1,7 +1,8 @@
 export const userData = {
     movies: {},
     tvShows: {},
-    books: {}
+    books: {},
+    bookShelf: []
 } as UserData
 
 
@@ -24,7 +25,8 @@ export interface UserData {
     },
     books: {
         [key: string]: BookInfo
-    }
+    },
+    bookShelf: string[]
 }
 
 
@@ -104,11 +106,12 @@ export interface Item {
 
 export interface BookInfo {
     title: string,
-    series: string,
+    bookShelf: string,
     authors: string[],
     publisher: string,
     ISBN: string,
     pageCount: number,
     thumbnail: string,
-    read: boolean
+    read: boolean,
+    reading: boolean
 }
