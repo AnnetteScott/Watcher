@@ -14,32 +14,35 @@
 								>
 								<div class="bookmark" :style="{color: `${dataBase.books[ISBN].read ? 'green' : dataBase.books[ISBN].reading ? 'orange' : 'red'}`}" :title="dataBase.books[ISBN].read ? 'Read' : dataBase.books[ISBN].reading ? 'Reading' : 'Not Read'"></div>
                                 
-                                <div class="page_count_display" :style="{background: `${dataBase.books[ISBN].read ? 'green' : dataBase.books[ISBN].reading ? 'orange' : 'red'}`}" >{{dataBase.books[ISBN].currentPage}}</div>
+                                <div class="page_count_display" :style="{background: `${dataBase.books[ISBN].read ? 'green' : dataBase.books[ISBN].reading ? 'orange' : 'red'}`}" v-if="dataBase.books[ISBN].reading">{{dataBase.books[ISBN].currentPage}}</div>
 							</div>
 						</template>
 					</div>
 				</div>
 				<ion-button expand="block" style="position: absolute; bottom: 55px; width: calc(100% - 4px);" @click="showSearch = !showSearch">Add Book</ion-button>
 			</div>
-			<div v-if="showSearch">
+			<div v-if="showSearch" style="height: calc(100% - 40px);">
 				<ion-searchbar placeholder="Enter ISBN Number" v-model="isbnNum"></ion-searchbar>
+				<ion-searchbar placeholder="Enter Book Name" v-model="searchBookName"></ion-searchbar>
 				<ion-button expand="block" @click="searchBookISBN()">Search</ion-button>
-				<div class="book_search_item" v-if="showResults">
-					<div>
-						<img :src="results.thumbnail">
-						<div>
-							<h1>{{results.title}}</h1>
-							<p>{{results.authors[0]}}</p>
-							<p>{{results.pageCount}} pages</p>
-						</div>
-					</div>
-					<ion-button expand="block" @click="addBookToDB()">Add</ion-button>
-				</div>
+                <div v-if="showResults" style="display: flex;flex-direction: column;height: calc(100% - 162px);overflow: scroll">
+                    <div class="book_search_item" v-for="bookInfo in results" :key="bookInfo.ISBN">
+                        <div >
+                            <img :src="bookInfo.thumbnail">
+                            <div>
+                                <h1>{{bookInfo.title}}</h1>
+                                <p>{{bookInfo.authors[0]}}</p>
+                                <p>{{bookInfo.pageCount}} pages</p>
+                            </div>
+                        </div>
+                        <ion-button expand="block" @click="addBookToDB(bookInfo.title, bookInfo.authors, bookInfo.publisher, bookInfo.ISBN, bookInfo.thumbnail)">Add</ion-button>
+                    </div>
+                </div>
 				<ion-button expand="block" style="position: absolute; bottom: 55px; width: calc(100% - 4px);" @click="showSearch = !showSearch">Back</ion-button>
 			</div>
 			<div class="book_pop_up_container" v-if="showBookPopUp">
 				<div class="book_pop_up" >
-					<ion-icon :icon="close" style="position: absolute; right: -4px; top: -2px; color: red; width: 32px; height: 32px;" @click="showBookPopUp = false"></ion-icon>
+					<ion-icon :icon="close" class="icon_close" @click="showBookPopUp = false"></ion-icon>
 					<div class="book_pop_inner">
 						<p>{{bookTitle}}</p>
 						<div class="input_item">
@@ -50,12 +53,10 @@
 							<label>Reading:</label>
 							<input type="checkbox" v-model="reading">
 						</div>
-                        
                         <div class="input_item">
 							<label>Current Page:</label>
 							<input v-model="currentPage" style="width: 10ch; aspect-ratio: 0;">
 						</div>
-						
 						<div class="input_item">
 							<label>Bookshelf:</label>
 							<select  v-model="bookShelfSelect">
@@ -67,7 +68,7 @@
 						</div>
                         
                         <div style="margin-top: 15px;" class="input_item">
-							<label>Bookshelf:</label>
+							<label>Position:</label>
 							<select  v-model="bookShelfPosSelect">
                                 <template v-if="Object.keys(dataBase.bookShelf[bookShelfSelect]).length != 0">
                                     <option v-for="pos in Object.keys(dataBase.bookShelf[bookShelfSelect])" :value="pos" :key="pos">{{parseInt(pos) + 1}}</option>
@@ -78,33 +79,29 @@
                                </template>
 							</select>
 						</div>
-						<ion-button expand="block" @click="saveBookToDB()" style="position: absolute; bottom: 50px; width: 90%;">Save</ion-button>
-						<ion-button expand="block" color="danger" @click="deleteBookFromDB()" style="position: absolute; bottom: 4px;">Delete</ion-button>
+						<ion-button expand="block" @click="saveBookToDB()" style="position: absolute; bottom: 0px; width: 90%; min-height: 25px;">Save</ion-button>
+						<ion-button expand="block" @click="deleteBookFromDB()" style="position: absolute; bottom: 60px; width: 90%; min-height: 25px;"  color="danger">Delete</ion-button>
 					</div>
 				</div>
 			</div>
 			<div class="book_pop_up_container" v-if="showAddShelf">
 				<div class="book_pop_up">
-					<ion-icon :icon="close" style="position: absolute; right: -4px; top: -2px; color: red; width: 32px; height: 32px;" @click="showAddShelf = false"></ion-icon>
-					<div class="book_pop_inner">
-						<div class="input_item">
-							<label>BookShelf Name:</label>
-							<input v-model="bookShelf" style="width: 140px; aspect-ratio: 0;">
-						</div>
-						<ion-button expand="block" @click="createBookShelf()" style="position: absolute; bottom: 50px; width: 90%;">Create</ion-button>
+					<ion-icon :icon="close" class="icon_close" @click="showAddShelf = false"></ion-icon>
+					<div class="book_pop_inner" style="min-height: 175px;">
+                        <label style="min-width:15ch">Bookshelf Name:</label>
+                        <input v-model="bookShelf" style="width: 100%; aspect-ratio: 0;">
+						<ion-button expand="block" @click="createBookShelf()" style="position: absolute; bottom: 10px; width: 90%;">Create</ion-button>
 					</div>
 				</div>
 			</div>
             <div class="book_pop_up_container" v-if="showMoveShelf">
                 <div class="book_pop_up">
-                    <ion-icon :icon="close" style="position: absolute; right: -4px; top: -2px; color: red; width: 32px; height: 32px;" @click="showMoveShelf = false"></ion-icon>
+                    <ion-icon :icon="close" class="icon_close" @click="showMoveShelf = false"></ion-icon>
                     <div class="book_pop_inner">
-                        <div style="margin-top: 15px;" class="input_item">
-							<label>Bookshelf Position:</label>
-							<select  v-model="shelfPos">
-                                <option v-for="pos in Object.keys(dataBase.shelfNames)" :value="pos" :key="pos">{{parseInt(pos) + 1}}</option>
-							</select>
-						</div>
+                        <label>Bookshelf Position:</label>
+                        <select  v-model="shelfPos">
+                            <option v-for="pos in Object.keys(dataBase.shelfNames)" :value="pos" :key="pos">{{parseInt(pos) + 1}}</option>
+                        </select>
                         <ion-button expand="block" @click="changeShelf()" style="position: absolute; bottom: 50px; width: 90%;">Save</ion-button>
                     </div>
                 </div>
@@ -137,7 +134,7 @@ export default  defineComponent({
 			dataBase: {} as DocumentData as UserData,
 			isbnNum: '',
 			rawData: {} as BookVolume,
-			results: {} as BookInfo,
+			results: {} as BookInfo[],
 			unsub: {} as Unsubscribe,
 			showResults: false,
 			showSearch: false,
@@ -153,6 +150,7 @@ export default  defineComponent({
             showMoveShelf: false,
             shelfPos: '',
             currentPage: '',
+            searchBookName: '',
 		}
 	},
 	mounted(){
@@ -172,42 +170,81 @@ export default  defineComponent({
 			}
 		},
 		searchBookISBN(){
-			this.results = {} as BookInfo
-			$.ajax({
-				context: this,
-				dataType: "json",
-				url: `https://www.googleapis.com/books/v1/volumes?q=isbn:${this.isbnNum}`,
-				cache: false,
-				success: function (data){
-					this.rawData = data
-					this.processSearch()
-				},
-				error: function (xhr){
-					console.log("Error " + xhr.status + ", could not check for updates.");
-				}
-			});
+			this.results = {} as BookInfo[]
+            if(this.isbnNum != ''){
+                $.ajax({
+                    context: this,
+                    dataType: "json",
+                    url: `https://www.googleapis.com/books/v1/volumes?q=isbn:${this.isbnNum}`,
+                    cache: false,
+                    success: function (data){
+                        this.rawData = data
+                        this.processSearch()
+                    },
+                    error: function (xhr){
+                        console.log("Error " + xhr.status + ", could not check for updates.");
+                    }
+                });
+            } else if(this.searchBookName != ''){
+                $.ajax({
+                    context: this,
+                    dataType: "json",
+                    url: `https://www.googleapis.com/books/v1/volumes?q=${this.searchBookName}`,
+                    cache: false,
+                    success: function (data){
+                        this.rawData = data
+                        this.processSearch()
+                    },
+                    error: function (xhr){
+                        console.log("Error " + xhr.status + ", could not check for updates.");
+                    }
+                });
+            }
 		},
 		processSearch(){
+            let totalCount = 10
             if(this.rawData.totalItems != 0){
-                this.results.title = this.rawData.items[0].volumeInfo.title
-                this.results.authors = this.rawData.items[0].volumeInfo.authors
-                for(let i = 0; i < this.rawData.items[0].volumeInfo.industryIdentifiers.length; i++){
-                    if(this.rawData.items[0].volumeInfo.industryIdentifiers[i].type == 'ISBN_13'){
-                        this.results.ISBN = this.rawData.items[0].volumeInfo.industryIdentifiers[i].identifier
+                if(this.rawData.totalItems < totalCount){
+                    totalCount = this.rawData.totalItems
+                }
+                for(let count = 0; count < totalCount; count++){
+                    let volumeInfo = this.rawData.items[count].volumeInfo
+                    if(
+                        volumeInfo.industryIdentifiers != undefined && 
+                        volumeInfo.authors != undefined && 
+                        volumeInfo.pageCount != undefined && 
+                        volumeInfo.publisher != undefined && 
+                        volumeInfo.title != undefined
+                    )
+                        {
+                        this.results[count] = {} as BookInfo
+                        this.results[count].title = volumeInfo.title
+                        this.results[count].authors = volumeInfo.authors
+                        for(let i = 0; i < volumeInfo.industryIdentifiers.length; i++){
+                            if(volumeInfo.industryIdentifiers[i].type == 'ISBN_13'){
+                                this.results[count].ISBN = volumeInfo.industryIdentifiers[i].identifier
+                            }
+                        }
+                        this.results[count].pageCount = volumeInfo.pageCount
+                        this.results[count].publisher = volumeInfo.publisher
+                        if(volumeInfo.imageLinks != undefined){
+                            this.results[count].thumbnail = volumeInfo.imageLinks.thumbnail
+                        }else{
+                            this.results[count].thumbnail = ''
+                        }
                     }
                 }
-                this.results.pageCount = this.rawData.items[0].volumeInfo.pageCount
-                this.results.publisher = this.rawData.items[0].volumeInfo.publisher
-                this.results.thumbnail = this.rawData.items[0].volumeInfo.imageLinks.thumbnail
+                console.log(this.results)
                 this.showResults = true
             }
 		},
-		async addBookToDB(){
-			await addBook(this.results.title, this.results.authors, this.results.publisher, this.results.ISBN, this.results.thumbnail)
+		async addBookToDB(title: string, authors: string[], publisher: string, ISBN: string, thumbnail: string){
+			await addBook(title, authors, publisher, ISBN, thumbnail)
 			this.showSearch = !this.showSearch
 			this.isbnNum = ''
+			this.searchBookName = ''
 			this.showResults = false
-			this.results = {} as BookInfo
+			this.results = {} as BookInfo[]
             this.currentPage = ''
 		},
 		async deleteBookFromDB(){
@@ -223,7 +260,9 @@ export default  defineComponent({
             if(this.read){
                 this.reading = false
             }
-
+            if(this.currentPage == '' || this.currentPage == null || this.currentPage == undefined){
+                this.currentPage = '0'
+            }
             let bookArr = this.dataBase.bookShelf[this.bookShelfSelect]
             const index = bookArr.indexOf(this.isbnNum);
             if (index > -1) {
@@ -231,10 +270,10 @@ export default  defineComponent({
             }
             bookArr.splice(parseInt(this.bookShelfPosSelect), 0, this.isbnNum)
             bookArr.join()
-            console.log(this.currentPage)
             await updateBook(this.isbnNum, this.read, this.reading, this.bookShelfSelect, bookArr, this.dataBase.books[this.isbnNum].bookShelf, this.currentPage)
             this.showBookPopUp = false
             this.bookChanged = false
+            this.isbnNum = ''
 		},
 		async createBookShelf(){
 			await addBookShelf(this.bookShelf)
@@ -277,7 +316,12 @@ export default  defineComponent({
 			else {
 				this.unsub()
 			}
-		}
+		},
+        showBookPopUp(newVal){
+            if(newVal === false){
+                this.isbnNum = ''
+            }
+        }
 	}
 });
 </script>
@@ -285,6 +329,16 @@ export default  defineComponent({
 <style scoped>
 p{
 	margin: 0;
+}
+
+.icon_close{
+    position: absolute; 
+    right: 0px; 
+    top: 0px; 
+    color: red; 
+    width: 32px; 
+    height: 32px;
+    z-index: 100;
 }
 
 .page_container{
@@ -333,7 +387,6 @@ p{
 	display: flex;
 	justify-content: flex-start;
 	gap: 18px;
-	min-height: 196px;
 	margin: 5px 0px;
 	padding: 10px 20px 32px 15px;
 	overflow-x: scroll;
@@ -457,14 +510,19 @@ p{
 	background-color: white;
 	border-radius: 10px;
 	padding: 10px;
+    overflow-y: scroll;
+    overflow-x: none;
 }
 
 .book_pop_inner{
+    position: relative;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	gap: 15px;
 	padding: 30px 0px;
+    height: 100%;
+    min-height: 480px;
 }
 
 input{
