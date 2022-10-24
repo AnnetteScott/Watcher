@@ -41,6 +41,7 @@
             <div class="profile_page">
                 <div class="top_section">
                     <div class="class_button" @click="signOutUser()">Sign Out</div>
+                    <div>Email: {{userEmail}}</div>
                 </div>
             </div>
         </template>
@@ -93,6 +94,9 @@ export default defineComponent({
                     this.showUserBox = false
                     this.SignType = ''
                     this.User = user
+                    if(user.email != null){
+                        this.userEmail = user.email
+                    }
                 } else {
                     // User is signed out
                     this.userSignIn = false
