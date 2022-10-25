@@ -27,15 +27,21 @@
 				<ion-button expand="block" @click="searchBookISBN()">Search</ion-button>
                 <div v-if="showResults" style="display: flex;flex-direction: column;height: calc(100% - 162px);overflow: scroll">
                     <div class="book_search_item" v-for="bookInfo in results" :key="bookInfo.ISBN">
-                        <div >
-                            <img :src="bookInfo.thumbnail">
+                        <div>
+                            <div class="book">
+                                <img :src="bookInfo.thumbnail">
+                                <div class="bookmark" 
+                                    v-if="bookInfo.ISBN in dataBase.books"
+                                    :style="{color: `${dataBase.books[bookInfo.ISBN].read ? 'green' : dataBase.books[bookInfo.ISBN].reading ? 'orange' : 'red'}`}">
+                                </div>
+                            </div>
                             <div>
                                 <h1>{{bookInfo.title}}</h1>
                                 <p>{{bookInfo.authors[0]}}</p>
                                 <p>{{bookInfo.pageCount}} pages</p>
                             </div>
                         </div>
-                        <ion-button expand="block" @click="addBookToDB(bookInfo.title, bookInfo.authors, bookInfo.publisher, bookInfo.ISBN, bookInfo.thumbnail)">Add</ion-button>
+                        <ion-button expand="block" style="margin-top: 15px" @click="addBookToDB(bookInfo.title, bookInfo.authors, bookInfo.publisher, bookInfo.ISBN, bookInfo.thumbnail)">Add</ion-button>
                     </div>
                 </div>
 				<ion-button expand="block" style="position: absolute; bottom: 55px; width: calc(100% - 4px);" @click="showSearch = !showSearch">Back</ion-button>
@@ -220,10 +226,15 @@ export default  defineComponent({
                         this.results[count] = {} as BookInfo
                         this.results[count].title = volumeInfo.title
                         this.results[count].authors = volumeInfo.authors
+                        let foundISBN = false
                         for(let i = 0; i < volumeInfo.industryIdentifiers.length; i++){
                             if(volumeInfo.industryIdentifiers[i].type == 'ISBN_13'){
+                                foundISBN = true
                                 this.results[count].ISBN = volumeInfo.industryIdentifiers[i].identifier
                             }
+                        }
+                        if(!foundISBN){
+                            this.results[count].ISBN = volumeInfo.industryIdentifiers[0].identifier
                         }
                         this.results[count].pageCount = volumeInfo.pageCount
                         this.results[count].publisher = volumeInfo.publisher
@@ -234,7 +245,6 @@ export default  defineComponent({
                         }
                     }
                 }
-                console.log(this.results)
                 this.showResults = true
             }
 		},
