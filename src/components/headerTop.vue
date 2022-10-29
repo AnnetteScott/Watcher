@@ -231,7 +231,7 @@ input{
 @keyframes fadeout {
     from {bottom: 30px; opacity: 1;}
     to {bottom: 0; opacity: 0;}
-    }
+}
 
 .profile_page{
     width: 100%;
